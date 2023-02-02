@@ -29,6 +29,8 @@ expiry = os.environ.get("EXPIRY")
 # If modifying these scopes, delete the file token.json.
 SCOPES = ['https://www.googleapis.com/auth/classroom.courses.readonly']
 
+tokenInfo = None
+
 
 def auth_user2():
     global client_secret
@@ -36,15 +38,26 @@ def auth_user2():
     global client_id
     global expiry
     global token
+    global tokenInfo
     creds = None
-
-    if os.path.exists('token.json'):
-        creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+    
+    if tokenInfo:
+        creds = Credentials.from_authorized_user_info(
+            info={
+                'client_id':tokenInfo['client_id'],
+                'client_secret':tokenInfo['client_secret'],
+                'refresh_token':tokenInfo['refresh_token'],
+                'token':tokenInfo['token'],
+                'expiry':tokenInfo['expiry']
+            },
+            scopes=SCOPES
+        )
 
     
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             print("refreshing token")
+            print(tokenInfo)
             creds.refresh(Request())
         else:
             print("creating new token")
@@ -57,9 +70,16 @@ def auth_user2():
                 },
                 scopes=SCOPES
             )
+            
+        tokenInfo = {
+            'client_id':creds.client_id,
+            'client_secret':creds.client_secret,
+            'refresh_token':creds.refresh_token,
+            'token':creds.token,
+            'expiry':creds.expiry.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        }
         
-        with open('token.json', 'w') as token:
-            token.write(creds.to_json())
+        print(tokenInfo)
     
     return creds
 
